@@ -1,58 +1,16 @@
 import React, {useState, useRef} from 'react';
-import {gql, useQuery, useMutation} from '@apollo/client';
+import {useQuery, useMutation} from '@apollo/client';
 import {useRouter} from 'next/router';
-
-export const GET_BANK_USER = gql`
-  query getBankUser($id: ID!) {
-    getBankUser(id: $id) {
-      name
-      balance
-      withdrawlLimit
-      transactions {
-        businessName
-        date
-        id
-        total
-      }
-    }
-  }
-`;
-
-export const MAKE_WITHDRAWL = gql`
-  mutation updateBankUser($patch: UpdateBankUserInput!) {
-    updateBankUser(input: $patch) {
-      bankUser {
-        name
-        balance
-        withdrawlLimit
-        transactions {
-          businessName
-          date
-          id
-          total
-        }
-      }
-    }
-  }
-`;
-
-export const MAKE_DEPOSIT = gql`
-  mutation updateBankUser($patch: UpdateBankUserInput!) {
-    updateBankUser(input: $patch) {
-      bankUser {
-        name
-        balance
-        withdrawlLimit
-        transactions {
-          businessName
-          date
-          id
-          total
-        }
-      }
-    }
-  }
-`;
+import {GET_BANK_USER} from '../lib/queries';
+import {MAKE_DEPOSIT, MAKE_WITHDRAWL} from '../lib/mutations';
+import {Header} from '../components/header';
+import {Tabs} from '../components/tabs';
+import {
+  InfoCircleOutlined,
+  UserOutlined,
+  LoadingOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -63,29 +21,45 @@ export default function Dashboard() {
   const [balanceAfterWithdrawl, setBalanceAfterWithdrawl] = useState(0);
   const [balanceAfterDeposit, setBalanceAfterDeposit] = useState(0);
   const [sessionLimit, setSessionLimit] = useState(0);
+  const [withdrawError, setWithdrawError] = useState(false);
+  const [withdrawErrorMsg, setWithdrawErrorMsg] = useState('');
 
   const withdrawlRef = useRef(null);
   const depositRef = useRef(null);
 
-  const {data, loading, error} = useQuery(GET_BANK_USER, {
+  const {
+    data,
+    loading: loadingUser,
+    error: errorUser,
+  } = useQuery(GET_BANK_USER, {
     variables: {id: query.id},
   });
 
-  const [withdrawMoney] = useMutation(MAKE_WITHDRAWL, {
-    refetchQueries: [{query: GET_BANK_USER, variables: {id: query.id}}],
-    variables: {
-      patch: {
-        filter: {
-          id: [query.id],
-        },
-        set: {
-          balance: balanceAfterWithdrawl,
+  const [withdrawMoney, {loading: withdrawLoading}] = useMutation(
+    MAKE_WITHDRAWL,
+    {
+      refetchQueries: [{query: GET_BANK_USER, variables: {id: query.id}}],
+      variables: {
+        patch: {
+          filter: {
+            id: [query.id],
+          },
+          set: {
+            balance: balanceAfterWithdrawl,
+            transactions: [
+              {
+                businessName: 'JTM - WITHDRAWL',
+                total: amountToWithdraw,
+                date: new Date().toISOString(),
+              },
+            ],
+          },
         },
       },
     },
-  });
+  );
 
-  const [depositMoney] = useMutation(MAKE_DEPOSIT, {
+  const [depositMoney, {loading: depositLoading}] = useMutation(MAKE_DEPOSIT, {
     refetchQueries: [{query: GET_BANK_USER, variables: {id: query.id}}],
     variables: {
       patch: {
@@ -96,7 +70,7 @@ export default function Dashboard() {
           balance: balanceAfterDeposit,
           transactions: [
             {
-              businessName: 'JTM',
+              businessName: 'JTM - DEPOSIT',
               total: amountToDeposit,
               date: new Date().toISOString(),
             },
@@ -113,13 +87,20 @@ export default function Dashboard() {
 
   function makeWithdrawl(e) {
     e.preventDefault();
+    setWithdrawError(false);
     if (amountToWithdraw > data.getBankUser.withdrawlLimit) {
-      console.log('YOU CANT DO THAT!');
+      setWithdrawError(true);
+      setWithdrawErrorMsg(
+        `You cannot withdraw more than $${data.getBankUser.withdrawlLimit}`,
+      );
       return;
     }
 
     if (data.getBankUser.withdrawlLimit - sessionLimit - amountToWithdraw < 0) {
-      console.log("You've Busted!");
+      setWithdrawError(true);
+      setWithdrawErrorMsg(
+        `You have exceeded your withdrawl limit of $${data.getBankUser.withdrawlLimit}`,
+      );
       return;
     }
 
@@ -139,55 +120,93 @@ export default function Dashboard() {
     depositRef.current.value = '';
   }
 
-  if (loading) return 'LOADING...';
+  function formatDate(d) {
+    const b = new Date(d);
 
-  if (error) return 'ERROR';
+    let year = b.getFullYear();
+    let day = b.getDate();
+    let month = b.getMonth();
+
+    return `${month + 1}/${day}/${year}`;
+  }
 
   return (
-    <div>
-      <h1>Dashboard</h1>
-      {data && (
-        <>
-          <h2>Welcome back, {data.getBankUser.name}!</h2>
-          <div className="balanceWrap">
-            Current Balance: ${data.getBankUser.balance.toLocaleString()}
-          </div>
-
-          <div className="withdrawlWrap">
-            <h3>Withdrawl</h3>
-            <form onSubmit={makeWithdrawl}>
-              <input
-                ref={withdrawlRef}
-                type="number"
-                onChange={handleWithdrawlAmount}
-              />
-              <button type="submit">Withdraw Money</button>
-            </form>
-          </div>
-          <div className="depositWrap">
-            <h3>Deposit</h3>
-            <form onSubmit={makeDeposit}>
-              <input
-                ref={depositRef}
-                type="number"
-                onChange={handleDepositAmount}
-              />
-              <button type="submit">Deposit</button>
-            </form>
-          </div>
-          <div className="transactionsWrap">
-            {data.getBankUser.transactions.map(transaction => {
-              console.log(transaction);
-              return (
-                <div key={transaction.id}>
-                  {transaction.businessName} {transaction.total}{' '}
-                  {transaction.date}
+    <>
+      <Header isDashboard />
+      <main>
+        <div className="container">
+          <h1>Dashboard</h1>
+          {loadingUser && (
+            <div className="dashboardLoading">
+              <LoadingOutlined />
+            </div>
+          )}
+          {errorUser && (
+            <div className="warning">
+              <WarningOutlined /> Whoops! Something went wrong fetching your
+              account.
+            </div>
+          )}
+          {data && (
+            <>
+              <h2>
+                <UserOutlined /> Welcome back, {data.getBankUser.name}!
+              </h2>
+              <div className="balanceWrap">
+                <div>
+                  <strong>Current Balance:</strong> $
+                  {data.getBankUser.balance.toLocaleString()}
                 </div>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
+                <div>
+                  <InfoCircleOutlined /> <strong>Daily withdrawl limit:</strong>{' '}
+                  ${data.getBankUser.withdrawlLimit}
+                </div>
+              </div>
+              <div className="dashboardMain">
+                <Tabs
+                  depositSubmitHandler={makeDeposit}
+                  withdrawSubmitHandler={makeWithdrawl}
+                  depositOnChange={handleDepositAmount}
+                  withdrawOnChange={handleWithdrawlAmount}
+                  depositRef={depositRef}
+                  withdrawRef={withdrawlRef}
+                  depositLoading={depositLoading}
+                  withdrawLoading={withdrawLoading}
+                  withdrawError={withdrawError}
+                  withdrawErrorMsg={withdrawErrorMsg}
+                />
+                <div className="transactionsWrap">
+                  <h3>Recent Transactions</h3>
+                  {depositLoading || withdrawLoading ? (
+                    <div className="dashboardLoading">
+                      <LoadingOutlined />
+                    </div>
+                  ) : (
+                    data.getBankUser.transactions
+                      .filter(
+                        transaction =>
+                          formatDate(transaction.date) !== '12/31/1969',
+                      )
+                      .map(transaction => {
+                        return (
+                          <div key={transaction.id} className="transaction">
+                            <div className="transactionInfo">
+                              {transaction.businessName}
+                              <span>{formatDate(transaction.date)}</span>
+                            </div>
+                            <div className="transactionTotal">
+                              ${transaction.total}
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+    </>
   );
 }

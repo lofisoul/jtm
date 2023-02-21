@@ -1,31 +1,13 @@
-import {useState} from 'react';
+import {useState, useRef} from 'react';
 import {useRouter} from 'next/router';
-import {gql, useLazyQuery} from '@apollo/client';
+import {useLazyQuery} from '@apollo/client';
 import Head from 'next/head';
-
-export const ALL_BANK_USERS_QUERY = gql`
-  query allBankUsers {
-    queryBankUser {
-      id
-      pin
-      name
-      balance
-      withdrawlLimit
-    }
-  }
-`;
-
-export const GET_BANK_USER_BY_PIN = gql`
-  query GetBankUserByPin($pin: Int!) {
-    queryBankUser(filter: {pin: {in: [$pin]}}) {
-      id
-    }
-  }
-`;
+import {Header} from '../components/header';
+import {GET_BANK_USER_BY_PIN} from '../lib/queries';
+import {LoadingOutlined, WarningOutlined} from '@ant-design/icons';
 
 export default function Home() {
   const [searchPin, setSearchPin] = useState(0);
-  const [bankUser, setBankUser] = useState(null);
   const [inputError, setInputError] = useState(false);
 
   const router = useRouter();
@@ -41,7 +23,6 @@ export default function Home() {
     e.preventDefault();
     setInputError(false);
     const user = await getBankUser({variables: {pin: searchPin}});
-    console.log(user);
     if (user?.data?.queryBankUser.length === 0) {
       setInputError(true);
       return;
@@ -65,22 +46,31 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
+      <Header />
       <main>
-        <div className="pinWrap">
-          <form onSubmit={onPINSubmit}>
-            <input
-              placeholder="Enter your 4 Digit PIN"
-              onChange={handlePinInput}
-              maxLength={4}
-              type="number"
-            />
-            <button type="submit">Enter</button>
-            {data &&
-              data.queryBankUser.length >= 1 &&
-              `${data.queryBankUser[0].name}`}
-            {inputError && <div>The PIN you entered is invalid.</div>}
-            {loading && 'Is Loading'}
-          </form>
+        <div className="container">
+          <div className="pinWrap actionForm">
+            <h1>Welcome Back!</h1>
+            <p>To begin, enter your four digit PIN</p>
+            <form onSubmit={onPINSubmit}>
+              <input
+                placeholder="Enter your 4 Digit PIN"
+                onChange={handlePinInput}
+                maxLength={4}
+                type="text"
+              />
+              <button type="submit">
+                {loading ? <LoadingOutlined /> : 'Enter'}
+              </button>
+              <div className="warning">
+                {inputError && (
+                  <>
+                    <WarningOutlined /> The PIN you entered is invalid.
+                  </>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
       </main>
     </>

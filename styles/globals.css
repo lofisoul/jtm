@@ -1,8 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Gloock&display=swap');
+
 :root {
   --body-color: #303536;
   --deep-black: #0f0e17;
+  --money-green: #2e8c4a;
   --disabled-gray: #c5c4d0;
-  --lg-phone-bp: 570px;
 }
 
 * {
@@ -20,25 +22,24 @@ body {
   height:100%;
 }
 
-body > div {
-  height: 100%;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    width: 100%;
-}
-
-@media screen and (min-width: 570px) {
-  body > div {
-    padding:20px;
-  }
-}å
-
 body {
   color: var(--body-color);
   background: #eff0ed;
-    font-size: 1.5rem;
-    margin:0;
+  font-size: 1.5rem;
+  margin:0;
+}
+
+main {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 30px;
+}
+
+@media screen and (min-width: 570px) {
+  main {
+    padding-top:70px;
+  }
 }
 
 a {
@@ -52,4 +53,126 @@ ul {
 
 button {
   color: var(--deep-black);
+}
+
+h1, h2, h3, h4 {
+  margin-top:0;
+}
+
+.container {
+  padding: 40px 20px;
+  background: #fff;
+  width:100%;
+  max-width: 670px;
+  box-shadow: 3px 3px 3px rgba(0,0,0,.3);
+  border-radius: 5px;
+}
+
+header {
+  background: #fff;
+  padding:20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header svg {
+  margin-right:10px;
+}
+
+header h1 {
+    font-family: 'Gloock', serif;
+    margin:0;
+}
+
+.logout a {
+  display:flex;
+}
+
+.actionForm form {
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.actionForm input {
+  border-radius: 5px;
+  border:1px solid var(--money-green);
+  margin-bottom:15px;
+  padding:15px;
+  width:100%;
+  max-width:300px;
+}
+
+.actionForm button {
+  width: 200px;
+  padding:10px 30px;
+  border:0;
+  background: var(--money-green);
+  color:#fff;
+  border-radius: 5px;
+  font-size:1.8rem;
+  font-weight:700;
+}
+
+.warning {
+  padding:15px;
+  color: #ff0000;
+}
+
+.balanceWrap {
+  display:flex;
+  justify-content:space-between;
+  padding:15px 0;
+  margin-bottom:30px;
+  border-top:1px solid var(--money-green);
+  border-bottom:1px solid var(--money-green);
+}
+
+.tabsNav {
+  border-bottom:1px solid var(--money-green);
+}
+
+.tabsNav ul {
+  display:flex;
+  margin:0;
+  padding:0;
+}
+
+.tabsNav ul li {
+  padding:10px 30px;
+}
+
+.tabsNav ul li.active {
+  background: var(--money-green);
+  font-weight:700;
+  color:#fff;
+}
+
+.tabsContent {
+  padding: 40px 20px;
+}
+
+.transaction {
+  display:flex;
+  justify-content: space-between;
+}
+
+.transactionInfo {
+  border-bottom:1px solid #f1f1f1;
+  padding-bottom:10px;
+  margin-bottom:10px;
+}
+
+.transactionInfo span {
+  display:block;
+  font-size:1.3rem;
+  font-weight:700;
+}
+
+.dashboardLoading {
+  font-size: 5rem;
+  text-align: center;
+  color: var(--money-green)
 }
